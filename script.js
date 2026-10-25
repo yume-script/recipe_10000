@@ -81,67 +81,41 @@ function card(it, onOpen) {
   return li;
 }
 
-// 책처럼 한 쪽씩 넘겨 읽는 전체화면 리더 (새 창 없음). host: 오버레이를 붙일 DOM 노드
+// 모든 내용을 한 페이지에 이어서 보여주는 전체화면 리더 (새 창 없음). host: 오버레이를 붙일 DOM 노드
 function openBook(host, it) {
-  const url = `${BASE}/recipe/${it.id}`, key = 'rcp:pos:' + it.id;
-  const ov = el('div', 'bk-ov'), book = el('div', 'bk-book'), page = el('div', 'bk-page');
-  const prev = el('button', 'bk-nav', '‹'), next = el('button', 'bk-nav', '›'), x = el('button', 'bk-x', '✕');
-  const cnt = el('span', 'bk-cnt'), foot = el('div', 'bk-foot');
-  [prev, next, x].forEach((b) => { b.type = 'button'; });
-  prev.setAttribute('aria-label', '이전 쪽'); next.setAttribute('aria-label', '다음 쪽'); x.setAttribute('aria-label', '닫기');
-  foot.append(prev, cnt, next); book.append(page, foot); ov.append(x, book); host.append(ov);
-  let pages = [], i = 0, sx = null;
-  const close = () => { document.removeEventListener('keydown', onKey); ov.remove(); };
-  const show = (n, dir) => {
-    if (!pages.length) return;
-    i = Math.max(0, Math.min(pages.length - 1, n));
-    const leaf = el('div', 'bk-leaf'); leaf.append(pages[i]());
-    page.dataset.dir = dir || 0; page.replaceChildren(leaf); page.scrollTop = 0;
-    cnt.textContent = `${i + 1} / ${pages.length}`; prev.disabled = i === 0; next.disabled = i === pages.length - 1;
-    try { localStorage.setItem(key, String(i)); } catch (e) { /* ignore */ }
-  };
-  function onKey(e) {
-    if (e.key === 'ArrowRight') show(i + 1, 1); else if (e.key === 'ArrowLeft') show(i - 1, -1); else if (e.key === 'Escape') close();
-  }
-  prev.onclick = () => show(i - 1, -1); next.onclick = () => show(i + 1, 1); x.onclick = close;
+  const url = `${BASE}/recipe/${it.id}`;
+  const ov = el('div', 'bk-ov'), book = el('div', 'bk-book'), page = el('div', 'bk-page'), x = el('button', 'bk-x', '✕');
+  x.type = 'button'; x.setAttribute('aria-label', '닫기');
+  book.append(page); ov.append(x, book); host.append(ov);
+  function onKey(e) { if (e.key === 'Escape') close(); }
+  function close() { document.removeEventListener('keydown', onKey); ov.remove(); }
+  x.onclick = close;
   document.addEventListener('keydown', onKey);
-  page.addEventListener('touchstart', (e) => { sx = e.touches[0].clientX; }, { passive: true });
-  page.addEventListener('touchend', (e) => {
-    if (sx === null) return;
-    const d = e.changedTouches[0].clientX - sx; sx = null;
-    if (Math.abs(d) > 50) show(i + (d < 0 ? 1 : -1), d < 0 ? 1 : -1);
-  });
   page.replaceChildren(el('p', 'bk-msg', '불러오는 중…'));
   getDoc(url).then((doc) => {
-    const r = parseRecipe(doc), title = r.title || it.title;
-    pages.push(() => {
-      const f = el('div');
-      if (it.src) f.append(pic(it.src, 'bk-img'));
-      f.append(el('h2', 'bk-h', title), el('p', 'bk-meta', [it.by, r.meta].filter(Boolean).join(' · ')), el('p', 'bk-text', r.intro));
-      return f;
-    });
-    if (r.ing.length) pages.push(() => {
-      const f = el('div'), ul = el('ul', 'bk-ing');
+    const r = parseRecipe(doc), f = el('div', 'bk-leaf');
+    if (it.src) f.append(pic(it.src, 'bk-img'));
+    f.append(el('h2', 'bk-h', r.title || it.title), el('p', 'bk-meta', [it.by, r.meta].filter(Boolean).join(' · ')));
+    if (r.intro) f.append(el('p', 'bk-text', r.intro));
+    if (r.ing.length) {
+      const ul = el('ul', 'bk-ing');
       r.ing.forEach((t) => ul.append(el('li', '', t)));
-      f.append(el('h3', 'bk-h', '재료'), ul);
-      return f;
-    });
-    r.steps.forEach((s, n) => pages.push(() => {
-      const f = el('div');
-      f.append(el('div', 'bk-meta', `${n + 1}단계`));
-      if (s.src) f.append(pic(s.src, 'bk-img'));
-      f.append(el('p', 'bk-text', s.text));
-      return f;
-    }));
-    pages.push(() => {
-      const f = el('div'), b = el('button', 'bk-btn', '원문 보기 (앱 안에서)');
-      b.type = 'button'; b.onclick = () => API.openWebview(url);
-      f.append(el('h3', 'bk-h', '맛있게 드세요'), el('p', 'bk-meta', '출처: 만개의레시피'), b);
-      return f;
-    });
-    let start = 0;
-    try { start = parseInt(localStorage.getItem(key), 10) || 0; } catch (e) { /* ignore */ }
-    show(start, 0);
+      f.append(el('h3', 'bk-h2', '재료'), ul);
+    }
+    if (r.steps.length) {
+      f.append(el('h3', 'bk-h2', '만드는 순서'));
+      r.steps.forEach((s, n) => {
+        const st = el('div', 'bk-step');
+        st.append(el('div', 'bk-meta', `${n + 1}단계`));
+        if (s.src) st.append(pic(s.src, 'bk-img'));
+        st.append(el('p', 'bk-text', s.text));
+        f.append(st);
+      });
+    } else f.append(el('p', 'bk-msg', '만드는 순서를 읽지 못했습니다. 아래 원문 보기를 이용해 주세요.'));
+    const b = el('button', 'bk-btn', '원문 보기 (앱 안에서)');
+    b.type = 'button'; b.onclick = () => API.openWebview(url);
+    f.append(el('p', 'bk-meta bk-src', '출처: 만개의레시피'), b);
+    page.replaceChildren(f); page.scrollTop = 0;
   }).catch((e) => page.replaceChildren(el('p', 'bk-msg', errText(e))));
 }
 const root = document.querySelector('.rcp-root');
