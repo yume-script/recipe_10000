@@ -111,10 +111,8 @@ function openBook(host, it) {
         st.append(el('p', 'bk-text', s.text));
         f.append(st);
       });
-    } else f.append(el('p', 'bk-msg', '만드는 순서를 읽지 못했습니다. 아래 원문 보기를 이용해 주세요.'));
-    const b = el('button', 'bk-btn', '원문 보기 (앱 안에서)');
-    b.type = 'button'; b.onclick = () => API.openWebview(url);
-    f.append(el('p', 'bk-meta bk-src', '출처: 만개의레시피'), b);
+    } else f.append(el('p', 'bk-msg', '만드는 순서를 읽지 못했습니다.'));
+    f.append(el('p', 'bk-meta bk-src', '출처: 만개의레시피'));
     page.replaceChildren(f); page.scrollTop = 0;
   }).catch((e) => page.replaceChildren(el('p', 'bk-msg', errText(e))));
 }

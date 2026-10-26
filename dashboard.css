@@ -19,4 +19,3 @@
 .bk-ing { columns: 2 200px; line-height: 2; padding-left: var(--app-space-5); font-size: var(--app-fs-lg); margin: 0; }
 .bk-step { margin-bottom: var(--app-space-6); }
 .bk-src { margin-top: var(--app-space-8); }
-.bk-btn { background: var(--app-accent); color: #fff; border: 0; border-radius: 6px; padding: var(--app-space-2) var(--app-space-4); font-weight: var(--app-fw-semibold); cursor: pointer; }
